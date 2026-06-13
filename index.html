@@ -1,0 +1,1389 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Immobilien Deal Analyzer</title>
+<meta name="description" content="Prüfe schnell ob sich ein Immobilienkauf lohnt – Rendite, Cashflow, Kaufpreisfaktor auf einen Blick.">
+<meta name="theme-color" content="#0d1117">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Deal Analyzer">
+<link rel="manifest" id="manifest-placeholder">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg: #0d1117;
+  --surface: #161b27;
+  --surface2: #1e2538;
+  --surface3: #252d40;
+  --border: #2a3347;
+  --text: #e8eaf0;
+  --text-muted: #6b7a99;
+  --text-dim: #4a5568;
+  --accent: #3b82f6;
+  --accent-hover: #2563eb;
+  --accent-glow: rgba(59,130,246,0.15);
+  --green: #10b981;
+  --green-bg: rgba(16,185,129,0.1);
+  --green-border: rgba(16,185,129,0.3);
+  --yellow: #f59e0b;
+  --yellow-bg: rgba(245,158,11,0.1);
+  --yellow-border: rgba(245,158,11,0.3);
+  --red: #ef4444;
+  --red-bg: rgba(239,68,68,0.1);
+  --red-border: rgba(239,68,68,0.3);
+  --radius: 12px;
+  --radius-sm: 8px;
+  --shadow: 0 4px 24px rgba(0,0,0,0.4);
+  --font: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+}
+
+html { scroll-behavior: smooth; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font);
+  min-height: 100vh;
+  line-height: 1.5;
+}
+
+/* ── NAV ── */
+nav {
+  position: sticky; top: 0; z-index: 100;
+  background: rgba(13,17,23,0.9);
+  backdrop-filter: blur(16px);
+  border-bottom: 1px solid var(--border);
+  padding: 0 20px;
+}
+.nav-inner {
+  max-width: 1200px; margin: 0 auto;
+  display: flex; align-items: center; gap: 8px;
+  height: 60px;
+}
+.nav-logo {
+  display: flex; align-items: center; gap: 10px;
+  font-size: 16px; font-weight: 700; color: var(--text);
+  text-decoration: none; margin-right: auto;
+  cursor: pointer;
+}
+.nav-logo-icon {
+  width: 32px; height: 32px; border-radius: 8px;
+  background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 16px;
+}
+.nav-btn {
+  padding: 6px 14px; border-radius: var(--radius-sm);
+  border: 1px solid var(--border); background: transparent;
+  color: var(--text-muted); font-size: 13px; font-weight: 500;
+  cursor: pointer; transition: all 0.2s;
+}
+.nav-btn:hover, .nav-btn.active {
+  background: var(--surface2); color: var(--text);
+  border-color: var(--accent);
+}
+
+/* ── VIEWS ── */
+.view { display: none; }
+.view.active { display: block; }
+
+/* ── HERO ── */
+.hero {
+  max-width: 900px; margin: 0 auto;
+  padding: 80px 20px 60px;
+  text-align: center;
+}
+.hero-badge {
+  display: inline-flex; align-items: center; gap: 6px;
+  background: var(--accent-glow); border: 1px solid rgba(59,130,246,0.3);
+  color: var(--accent); padding: 4px 12px; border-radius: 100px;
+  font-size: 12px; font-weight: 600; letter-spacing: 0.5px;
+  text-transform: uppercase; margin-bottom: 24px;
+}
+.hero h1 {
+  font-size: clamp(32px, 6vw, 56px); font-weight: 800;
+  line-height: 1.1; margin-bottom: 20px;
+  background: linear-gradient(135deg, #e8eaf0 0%, #a0aec0 100%);
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+.hero-sub {
+  font-size: clamp(15px, 2vw, 18px); color: var(--text-muted);
+  max-width: 560px; margin: 0 auto 40px;
+}
+.hero-cta {
+  display: inline-flex; align-items: center; gap: 8px;
+  background: var(--accent); color: #fff;
+  padding: 14px 28px; border-radius: var(--radius);
+  font-size: 16px; font-weight: 600; border: none;
+  cursor: pointer; transition: all 0.2s;
+  box-shadow: 0 0 32px rgba(59,130,246,0.4);
+}
+.hero-cta:hover { background: var(--accent-hover); transform: translateY(-2px); }
+
+.hero-stats {
+  display: flex; justify-content: center; gap: 40px;
+  margin-top: 60px; flex-wrap: wrap;
+}
+.hero-stat { text-align: center; }
+.hero-stat-val {
+  font-size: 28px; font-weight: 800; color: var(--accent);
+  display: block;
+}
+.hero-stat-lbl { font-size: 12px; color: var(--text-muted); }
+
+/* ── CONTAINER ── */
+.container { max-width: 1100px; margin: 0 auto; padding: 32px 20px 80px; }
+
+/* ── PAGE HEADER ── */
+.page-header {
+  display: flex; align-items: center; gap: 16px;
+  margin-bottom: 32px; flex-wrap: wrap;
+}
+.page-header h2 {
+  font-size: 24px; font-weight: 700; flex: 1;
+}
+.btn {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 10px 20px; border-radius: var(--radius-sm);
+  font-size: 14px; font-weight: 600; border: none;
+  cursor: pointer; transition: all 0.2s;
+}
+.btn-primary { background: var(--accent); color: #fff; }
+.btn-primary:hover { background: var(--accent-hover); }
+.btn-ghost {
+  background: transparent; color: var(--text-muted);
+  border: 1px solid var(--border);
+}
+.btn-ghost:hover { background: var(--surface2); color: var(--text); }
+.btn-danger { background: var(--red-bg); color: var(--red); border: 1px solid var(--red-border); }
+.btn-danger:hover { background: rgba(239,68,68,0.2); }
+.btn-sm { padding: 6px 12px; font-size: 12px; }
+
+/* ── FORM ── */
+.form-grid { display: flex; flex-direction: column; gap: 24px; }
+
+.form-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+.form-card-header {
+  padding: 16px 20px;
+  background: var(--surface2);
+  border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; gap: 10px;
+}
+.form-card-icon {
+  width: 32px; height: 32px; border-radius: 8px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 16px; flex-shrink: 0;
+}
+.form-card-header h3 { font-size: 15px; font-weight: 600; }
+.form-card-body { padding: 20px; }
+
+.field-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 16px;
+}
+.field-grid-2 { grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); }
+
+.field { display: flex; flex-direction: column; gap: 6px; }
+.field label {
+  font-size: 12px; font-weight: 600; color: var(--text-muted);
+  text-transform: uppercase; letter-spacing: 0.5px;
+}
+.field-note { font-size: 11px; color: var(--text-dim); }
+
+.input-wrap { position: relative; }
+.input-wrap .unit {
+  position: absolute; right: 12px; top: 50%; transform: translateY(-50%);
+  font-size: 13px; color: var(--text-dim); pointer-events: none;
+}
+
+input[type="text"], input[type="number"], input[type="email"], textarea {
+  width: 100%;
+  background: var(--surface3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text);
+  font-size: 14px;
+  font-family: var(--font);
+  padding: 10px 14px;
+  transition: border-color 0.2s, box-shadow 0.2s;
+  appearance: none;
+}
+input[type="number"] { padding-right: 36px; }
+input:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-glow);
+}
+input.auto-field {
+  background: var(--bg);
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.form-actions {
+  display: flex; gap: 12px; flex-wrap: wrap;
+  padding: 20px; border-top: 1px solid var(--border);
+  background: var(--surface);
+}
+
+/* ── RESULTS ── */
+.results-header {
+  display: flex; flex-direction: column; gap: 8px; margin-bottom: 32px;
+}
+.results-title { font-size: 22px; font-weight: 700; }
+.results-sub { font-size: 14px; color: var(--text-muted); }
+
+.ampel-card {
+  border-radius: var(--radius);
+  padding: 28px 32px;
+  display: flex; align-items: center; gap: 24px;
+  margin-bottom: 28px; border: 1px solid;
+  flex-wrap: wrap;
+}
+.ampel-card.green { background: var(--green-bg); border-color: var(--green-border); }
+.ampel-card.yellow { background: var(--yellow-bg); border-color: var(--yellow-border); }
+.ampel-card.red { background: var(--red-bg); border-color: var(--red-border); }
+
+.ampel-icon { font-size: 48px; line-height: 1; }
+.ampel-text h3 { font-size: 22px; font-weight: 800; }
+.ampel-card.green .ampel-text h3 { color: var(--green); }
+.ampel-card.yellow .ampel-text h3 { color: var(--yellow); }
+.ampel-card.red .ampel-text h3 { color: var(--red); }
+.ampel-text p { font-size: 14px; color: var(--text-muted); margin-top: 4px; }
+
+.metrics-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 16px;
+  margin-bottom: 24px;
+}
+.metric-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 20px;
+  position: relative;
+  overflow: hidden;
+}
+.metric-card::before {
+  content: '';
+  position: absolute; top: 0; left: 0; right: 0;
+  height: 3px;
+}
+.metric-card.green::before { background: var(--green); }
+.metric-card.yellow::before { background: var(--yellow); }
+.metric-card.red::before { background: var(--red); }
+.metric-card.neutral::before { background: var(--accent); }
+
+.metric-label {
+  font-size: 11px; font-weight: 600; color: var(--text-muted);
+  text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px;
+}
+.metric-value {
+  font-size: 28px; font-weight: 800; line-height: 1;
+  margin-bottom: 4px;
+}
+.metric-card.green .metric-value { color: var(--green); }
+.metric-card.yellow .metric-value { color: var(--yellow); }
+.metric-card.red .metric-value { color: var(--red); }
+.metric-card.neutral .metric-value { color: var(--text); }
+.metric-sub { font-size: 12px; color: var(--text-muted); }
+
+.detail-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 16px;
+  margin-bottom: 24px;
+}
+.detail-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 16px 20px;
+}
+.detail-card h4 {
+  font-size: 12px; font-weight: 600; color: var(--text-muted);
+  text-transform: uppercase; letter-spacing: 0.5px;
+  margin-bottom: 12px; display: flex; align-items: center; gap: 6px;
+}
+.detail-row {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 6px 0;
+  border-bottom: 1px solid var(--border);
+  font-size: 13px;
+}
+.detail-row:last-child { border-bottom: none; }
+.detail-row span:last-child { font-weight: 600; color: var(--text); }
+
+/* ── DEALS LIST ── */
+.deals-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 20px;
+}
+.deal-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 20px;
+  cursor: pointer; transition: all 0.2s;
+  position: relative; overflow: hidden;
+}
+.deal-card:hover {
+  border-color: var(--accent);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow);
+}
+.deal-card-top {
+  display: flex; justify-content: space-between; align-items: flex-start;
+  margin-bottom: 16px;
+}
+.deal-card-name { font-size: 16px; font-weight: 700; margin-bottom: 2px; }
+.deal-card-loc { font-size: 12px; color: var(--text-muted); }
+.deal-badge {
+  padding: 3px 10px; border-radius: 100px;
+  font-size: 11px; font-weight: 700; flex-shrink: 0;
+}
+.deal-badge.green { background: var(--green-bg); color: var(--green); border: 1px solid var(--green-border); }
+.deal-badge.yellow { background: var(--yellow-bg); color: var(--yellow); border: 1px solid var(--yellow-border); }
+.deal-badge.red { background: var(--red-bg); color: var(--red); border: 1px solid var(--red-border); }
+
+.deal-stats {
+  display: grid; grid-template-columns: 1fr 1fr 1fr;
+  gap: 8px; margin-bottom: 16px;
+}
+.deal-stat { text-align: center; }
+.deal-stat-val { font-size: 18px; font-weight: 800; }
+.deal-stat-lbl { font-size: 10px; color: var(--text-muted); }
+
+.deal-actions {
+  display: flex; gap: 8px; justify-content: flex-end;
+  padding-top: 12px; border-top: 1px solid var(--border);
+}
+
+.empty-state {
+  text-align: center; padding: 80px 20px;
+  color: var(--text-muted);
+}
+.empty-state-icon { font-size: 56px; margin-bottom: 16px; opacity: 0.4; }
+.empty-state h3 { font-size: 18px; font-weight: 600; margin-bottom: 8px; color: var(--text); }
+.empty-state p { font-size: 14px; margin-bottom: 24px; }
+
+/* ── COMPARE ── */
+.compare-selector {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 20px; margin-bottom: 24px;
+}
+.compare-selector h3 { font-size: 14px; font-weight: 600; margin-bottom: 12px; }
+.compare-checks { display: flex; flex-wrap: wrap; gap: 10px; }
+.compare-check {
+  display: flex; align-items: center; gap: 8px;
+  padding: 8px 14px; border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: var(--surface2); cursor: pointer;
+  font-size: 13px; transition: all 0.2s;
+}
+.compare-check input { accent-color: var(--accent); width: 14px; height: 14px; }
+.compare-check:hover { border-color: var(--accent); }
+
+.compare-table-wrap { overflow-x: auto; }
+.compare-table {
+  width: 100%; border-collapse: collapse;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+.compare-table th, .compare-table td {
+  padding: 12px 16px; text-align: left;
+  border-bottom: 1px solid var(--border);
+  font-size: 13px;
+}
+.compare-table th {
+  background: var(--surface2);
+  font-weight: 600; font-size: 12px;
+  color: var(--text-muted); text-transform: uppercase;
+  letter-spacing: 0.5px; white-space: nowrap;
+}
+.compare-table tr:last-child td { border-bottom: none; }
+.compare-table .row-label {
+  color: var(--text-muted); font-weight: 500; white-space: nowrap;
+}
+.compare-table .deal-col { min-width: 160px; }
+.compare-table .deal-header { font-weight: 700; font-size: 14px; }
+.val-green { color: var(--green); font-weight: 700; }
+.val-yellow { color: var(--yellow); font-weight: 700; }
+.val-red { color: var(--red); font-weight: 700; }
+
+/* ── TOAST ── */
+.toast {
+  position: fixed; bottom: 24px; right: 24px;
+  background: var(--surface2); border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 12px 18px;
+  font-size: 14px; font-weight: 500;
+  box-shadow: var(--shadow);
+  transform: translateY(80px); opacity: 0;
+  transition: all 0.3s ease;
+  z-index: 9999;
+  max-width: 320px;
+}
+.toast.show { transform: translateY(0); opacity: 1; }
+.toast.success { border-color: var(--green-border); }
+.toast.error { border-color: var(--red-border); }
+
+/* ── RESPONSIVE ── */
+@media (max-width: 640px) {
+  .nav-btn span { display: none; }
+  .hero { padding: 48px 16px 40px; }
+  .hero-stats { gap: 20px; }
+  .container { padding: 20px 16px 60px; }
+  .metrics-grid { grid-template-columns: 1fr 1fr; }
+  .ampel-card { flex-direction: column; text-align: center; }
+  .field-grid { grid-template-columns: 1fr; }
+  .compare-table { font-size: 12px; }
+  .compare-table th, .compare-table td { padding: 10px 12px; }
+}
+@media (max-width: 400px) {
+  .metrics-grid { grid-template-columns: 1fr; }
+}
+
+/* ── SCROLL TO TOP ── */
+.back-to-top {
+  position: fixed; bottom: 80px; right: 24px;
+  width: 40px; height: 40px;
+  background: var(--surface2); border: 1px solid var(--border);
+  border-radius: 50%; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 16px; color: var(--text-muted);
+  opacity: 0; pointer-events: none;
+  transition: all 0.2s;
+  z-index: 50;
+}
+.back-to-top.visible { opacity: 1; pointer-events: all; }
+
+/* Divider line */
+hr.divider {
+  border: none; border-top: 1px solid var(--border);
+  margin: 24px 0;
+}
+
+/* Section label inside form */
+.section-tip {
+  background: var(--accent-glow);
+  border: 1px solid rgba(59,130,246,0.2);
+  border-radius: var(--radius-sm);
+  padding: 10px 14px;
+  font-size: 12px;
+  color: var(--accent);
+  margin-bottom: 16px;
+  display: flex; align-items: center; gap: 8px;
+}
+
+/* Chip row for rating breakdown */
+.rating-chips {
+  display: flex; flex-wrap: wrap; gap: 8px; margin-left: auto;
+}
+.chip {
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 4px 10px; border-radius: 100px;
+  font-size: 12px; font-weight: 600;
+}
+.chip.green { background: var(--green-bg); color: var(--green); border: 1px solid var(--green-border); }
+.chip.yellow { background: var(--yellow-bg); color: var(--yellow); border: 1px solid var(--yellow-border); }
+.chip.red { background: var(--red-bg); color: var(--red); border: 1px solid var(--red-border); }
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <div class="nav-inner">
+    <div class="nav-logo" onclick="navigate('home')">
+      <div class="nav-logo-icon">🏠</div>
+      <span>Deal Analyzer</span>
+    </div>
+    <button class="nav-btn active" id="nav-home" onclick="navigate('home')"><span>Start</span></button>
+    <button class="nav-btn" id="nav-new" onclick="navigate('new')">+ <span>Neuer Deal</span></button>
+    <button class="nav-btn" id="nav-deals" onclick="navigate('deals')">📋 <span>Meine Deals</span></button>
+    <button class="nav-btn" id="nav-compare" onclick="navigate('compare')">⚖️ <span>Vergleich</span></button>
+  </div>
+</nav>
+
+<!-- HOME VIEW -->
+<div class="view active" id="view-home">
+  <div class="hero">
+    <div class="hero-badge">🏡 Immobilien Investment Tool</div>
+    <h1>Immobilien Deal<br>Analyzer</h1>
+    <p class="hero-sub">Prüfe in Sekunden, ob sich ein Immobilienkauf wirklich lohnt. Rendite, Cashflow, Kaufpreisfaktor – alles auf einen Blick.</p>
+    <button class="hero-cta" onclick="navigate('new')">
+      ✦ Neuen Deal prüfen
+    </button>
+    <div class="hero-stats">
+      <div class="hero-stat">
+        <span class="hero-stat-val">9+</span>
+        <div class="hero-stat-lbl">Kennzahlen</div>
+      </div>
+      <div class="hero-stat">
+        <span class="hero-stat-val">3</span>
+        <div class="hero-stat-lbl">Ampel-Bewertungen</div>
+      </div>
+      <div class="hero-stat">
+        <span class="hero-stat-val">∞</span>
+        <div class="hero-stat-lbl">Deals speicherbar</div>
+      </div>
+      <div class="hero-stat">
+        <span class="hero-stat-val">100%</span>
+        <div class="hero-stat-lbl">Offline & lokal</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- NEW DEAL VIEW -->
+<div class="view" id="view-new">
+  <div class="container">
+    <div class="page-header">
+      <h2>🏠 Neuen Deal analysieren</h2>
+      <button class="btn btn-ghost" onclick="navigate('deals')">Meine Deals</button>
+    </div>
+
+    <form id="dealForm" onsubmit="submitDeal(event)" class="form-grid">
+
+      <!-- Objektdaten -->
+      <div class="form-card">
+        <div class="form-card-header">
+          <div class="form-card-icon" style="background:linear-gradient(135deg,#3b82f6,#8b5cf6)">🏡</div>
+          <h3>Objektdaten</h3>
+        </div>
+        <div class="form-card-body">
+          <div class="field-grid field-grid-2">
+            <div class="field">
+              <label>Objektname / Bezeichnung</label>
+              <input type="text" id="name" placeholder="z.B. ETW München Schwabing" required>
+            </div>
+            <div class="field">
+              <label>Adresse / Stadt</label>
+              <input type="text" id="address" placeholder="z.B. Leopoldstr. 12, München">
+            </div>
+          </div>
+          <div class="field-grid" style="margin-top:16px">
+            <div class="field">
+              <label>Wohnfläche</label>
+              <div class="input-wrap">
+                <input type="number" id="area" placeholder="85" min="1" step="0.1" oninput="autoCalc()" required>
+                <span class="unit">m²</span>
+              </div>
+            </div>
+            <div class="field">
+              <label>Anzahl Wohneinheiten</label>
+              <div class="input-wrap">
+                <input type="number" id="units" placeholder="1" min="1" step="1" value="1">
+                <span class="unit">WE</span>
+              </div>
+            </div>
+            <div class="field">
+              <label>Kaufpreis</label>
+              <div class="input-wrap">
+                <input type="number" id="purchase_price" placeholder="350000" min="0" oninput="autoCalc()" required>
+                <span class="unit">€</span>
+              </div>
+            </div>
+            <div class="field">
+              <label>Kaltmiete aktuell (mtl.)</label>
+              <div class="input-wrap">
+                <input type="number" id="rent_current" placeholder="900" min="0" step="0.01" oninput="autoCalc()" required>
+                <span class="unit">€</span>
+              </div>
+            </div>
+            <div class="field">
+              <label>Kaltmiete nach Sanierung (mtl.)</label>
+              <div class="input-wrap">
+                <input type="number" id="rent_after" placeholder="1100" min="0" step="0.01" oninput="autoCalc()">
+                <span class="unit">€</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Kaufnebenkosten -->
+      <div class="form-card">
+        <div class="form-card-header">
+          <div class="form-card-icon" style="background:linear-gradient(135deg,#8b5cf6,#ec4899)">📋</div>
+          <h3>Kaufnebenkosten</h3>
+        </div>
+        <div class="form-card-body">
+          <div class="section-tip">💡 Typisch: Grunderwerbsteuer 3,5–6,5 % (je nach Bundesland) · Notar & Grundbuch ~2 % · Makler 0–3,57 %</div>
+          <div class="field-grid">
+            <div class="field">
+              <label>Grunderwerbsteuer</label>
+              <div class="input-wrap">
+                <input type="number" id="land_tax" placeholder="3.5" min="0" max="10" step="0.1" value="3.5" oninput="autoCalc()">
+                <span class="unit">%</span>
+              </div>
+            </div>
+            <div class="field">
+              <label>Notar & Grundbuch</label>
+              <div class="input-wrap">
+                <input type="number" id="notary" placeholder="2.0" min="0" max="5" step="0.1" value="2.0" oninput="autoCalc()">
+                <span class="unit">%</span>
+              </div>
+            </div>
+            <div class="field">
+              <label>Maklerprovision</label>
+              <div class="input-wrap">
+                <input type="number" id="broker" placeholder="3.57" min="0" max="10" step="0.01" value="3.57" oninput="autoCalc()">
+                <span class="unit">%</span>
+              </div>
+            </div>
+            <div class="field">
+              <label>Sonstige Kaufnebenkosten</label>
+              <div class="input-wrap">
+                <input type="number" id="other_costs" placeholder="0" min="0" step="100" value="0" oninput="autoCalc()">
+                <span class="unit">€</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Sanierung -->
+      <div class="form-card">
+        <div class="form-card-header">
+          <div class="form-card-icon" style="background:linear-gradient(135deg,#f59e0b,#ef4444)">🔨</div>
+          <h3>Sanierung &amp; Renovierung</h3>
+        </div>
+        <div class="form-card-body">
+          <div class="field-grid">
+            <div class="field">
+              <label>Sanierungskosten gesamt</label>
+              <div class="input-wrap">
+                <input type="number" id="renovation" placeholder="30000" min="0" step="100" value="0" oninput="autoCalc()">
+                <span class="unit">€</span>
+              </div>
+            </div>
+            <div class="field">
+              <label>Sanierungskosten pro m²</label>
+              <div class="field-note">Wird automatisch berechnet</div>
+              <div class="input-wrap">
+                <input type="number" id="reno_per_sqm" class="auto-field" readonly placeholder="—">
+                <span class="unit">€/m²</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Finanzierung -->
+      <div class="form-card">
+        <div class="form-card-header">
+          <div class="form-card-icon" style="background:linear-gradient(135deg,#10b981,#3b82f6)">🏦</div>
+          <h3>Finanzierung</h3>
+        </div>
+        <div class="form-card-body">
+          <div class="field-grid">
+            <div class="field">
+              <label>Eigenkapital</label>
+              <div class="input-wrap">
+                <input type="number" id="equity" placeholder="80000" min="0" step="1000" oninput="autoCalc()">
+                <span class="unit">€</span>
+              </div>
+            </div>
+            <div class="field">
+              <label>Darlehensbetrag</label>
+              <div class="field-note">Gesamtkosten − Eigenkapital</div>
+              <div class="input-wrap">
+                <input type="number" id="loan" class="auto-field" readonly placeholder="—">
+                <span class="unit">€</span>
+              </div>
+            </div>
+            <div class="field">
+              <label>Zinssatz p.a.</label>
+              <div class="input-wrap">
+                <input type="number" id="interest" placeholder="3.5" min="0" max="20" step="0.01" value="3.5" oninput="autoCalc()">
+                <span class="unit">%</span>
+              </div>
+            </div>
+            <div class="field">
+              <label>Tilgung p.a.</label>
+              <div class="input-wrap">
+                <input type="number" id="repayment" placeholder="2.0" min="0" max="20" step="0.01" value="2.0" oninput="autoCalc()">
+                <span class="unit">%</span>
+              </div>
+            </div>
+            <div class="field">
+              <label>Monatliche Kreditrate</label>
+              <div class="field-note">Automatisch berechnet</div>
+              <div class="input-wrap">
+                <input type="number" id="monthly_rate" class="auto-field" readonly placeholder="—">
+                <span class="unit">€</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Laufende Kosten -->
+      <div class="form-card">
+        <div class="form-card-header">
+          <div class="form-card-icon" style="background:linear-gradient(135deg,#6366f1,#06b6d4)">📊</div>
+          <h3>Laufende Kosten</h3>
+        </div>
+        <div class="form-card-body">
+          <div class="field-grid">
+            <div class="field">
+              <label>Nicht umlagefähige Kosten (mtl.)</label>
+              <div class="field-note">z.B. Hausgeld-Anteil, Verwaltung</div>
+              <div class="input-wrap">
+                <input type="number" id="non_chargeable" placeholder="150" min="0" step="10" value="150" oninput="autoCalc()">
+                <span class="unit">€</span>
+              </div>
+            </div>
+            <div class="field">
+              <label>Instandhaltungsrücklage (mtl.)</label>
+              <div class="field-note">z.B. 1–1,5 € pro m² und Monat</div>
+              <div class="input-wrap">
+                <input type="number" id="maintenance" placeholder="85" min="0" step="5" value="0" oninput="autoCalc()">
+                <span class="unit">€</span>
+              </div>
+            </div>
+            <div class="field">
+              <label>Leerstandsrisiko (mtl.)</label>
+              <div class="field-note">z.B. 1/12 der Jahresmiete ≈ 8 %</div>
+              <div class="input-wrap">
+                <input type="number" id="vacancy" placeholder="75" min="0" step="5" value="0" oninput="autoCalc()">
+                <span class="unit">€</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Actions -->
+      <div class="form-card">
+        <div class="form-actions">
+          <button type="submit" class="btn btn-primary" style="flex:1">
+            ✦ Deal analysieren &amp; speichern
+          </button>
+          <button type="button" class="btn btn-ghost" onclick="resetForm()">Zurücksetzen</button>
+        </div>
+      </div>
+
+    </form>
+  </div>
+</div>
+
+<!-- RESULTS VIEW -->
+<div class="view" id="view-results">
+  <div class="container">
+    <div class="page-header">
+      <h2>📊 Analyse-Ergebnis</h2>
+      <button class="btn btn-ghost" onclick="navigate('new')">Neuer Deal</button>
+      <button class="btn btn-ghost" onclick="navigate('deals')">Alle Deals</button>
+    </div>
+    <div id="results-content"></div>
+  </div>
+</div>
+
+<!-- DEALS VIEW -->
+<div class="view" id="view-deals">
+  <div class="container">
+    <div class="page-header">
+      <h2>📋 Meine Deals</h2>
+      <button class="btn btn-ghost" onclick="navigate('compare')">⚖️ Vergleichen</button>
+      <button class="btn btn-primary" onclick="navigate('new')">+ Neuer Deal</button>
+    </div>
+    <div id="deals-content"></div>
+  </div>
+</div>
+
+<!-- COMPARE VIEW -->
+<div class="view" id="view-compare">
+  <div class="container">
+    <div class="page-header">
+      <h2>⚖️ Deal-Vergleich</h2>
+      <button class="btn btn-ghost" onclick="navigate('deals')">Zurück</button>
+    </div>
+    <div id="compare-content"></div>
+  </div>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<script>
+// ── STATE ──
+let deals = JSON.parse(localStorage.getItem('immobilien_deals') || '[]');
+let currentDealId = null;
+let editingDealId = null;
+
+// ── NAVIGATE ──
+function navigate(view) {
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('view-' + view).classList.add('active');
+  const nb = document.getElementById('nav-' + view);
+  if (nb) nb.classList.add('active');
+  window.scrollTo(0, 0);
+
+  if (view === 'deals') renderDealsList();
+  if (view === 'compare') renderCompare();
+}
+
+// ── AUTO CALC (live in form) ──
+function autoCalc() {
+  const area         = parseFloat(document.getElementById('area').value) || 0;
+  const purchase     = parseFloat(document.getElementById('purchase_price').value) || 0;
+  const landTax      = parseFloat(document.getElementById('land_tax').value) || 0;
+  const notary       = parseFloat(document.getElementById('notary').value) || 0;
+  const broker       = parseFloat(document.getElementById('broker').value) || 0;
+  const otherCosts   = parseFloat(document.getElementById('other_costs').value) || 0;
+  const renovation   = parseFloat(document.getElementById('renovation').value) || 0;
+  const equity       = parseFloat(document.getElementById('equity').value) || 0;
+  const interest     = parseFloat(document.getElementById('interest').value) || 0;
+  const repayment    = parseFloat(document.getElementById('repayment').value) || 0;
+
+  const sideCosts = purchase * (landTax + notary + broker) / 100 + otherCosts;
+  const totalCost = purchase + sideCosts + renovation;
+  const loan      = Math.max(0, totalCost - equity);
+  const rate      = loan * (interest + repayment) / 100 / 12;
+  const renoSqm   = area > 0 ? renovation / area : 0;
+
+  document.getElementById('reno_per_sqm').value = renoSqm > 0 ? renoSqm.toFixed(2) : '';
+  document.getElementById('loan').value          = loan > 0 ? Math.round(loan) : '';
+  document.getElementById('monthly_rate').value  = rate > 0 ? rate.toFixed(2) : '';
+}
+
+// ── CALCULATE DEAL ──
+function calculateDeal(d) {
+  const purchase       = d.purchase_price;
+  const area           = d.area;
+  const rentCurrent    = d.rent_current;
+  const rentAfter      = d.rent_after || rentCurrent;
+  const landTax        = d.land_tax;
+  const notary         = d.notary;
+  const broker         = d.broker;
+  const otherCosts     = d.other_costs;
+  const renovation     = d.renovation;
+  const equity         = d.equity;
+  const interest       = d.interest;
+  const repayment      = d.repayment;
+  const nonChargeable  = d.non_chargeable;
+  const maintenance    = d.maintenance;
+  const vacancy        = d.vacancy;
+
+  const sideCosts      = purchase * (landTax + notary + broker) / 100 + otherCosts;
+  const totalCost      = purchase + sideCosts + renovation;
+  const loan           = Math.max(0, totalCost - equity);
+  const monthlyRate    = loan * (interest + repayment) / 100 / 12;
+  const renoPerSqm     = area > 0 ? renovation / area : 0;
+  const priceSqm       = area > 0 ? purchase / area : 0;
+  const totalCostSqm   = area > 0 ? totalCost / area : 0;
+
+  const yearRentCurrent = rentCurrent * 12;
+  const yearRentAfter   = rentAfter * 12;
+
+  const grossYield     = purchase > 0 ? yearRentCurrent / purchase * 100 : 0;
+  const netYield       = totalCost > 0 ? yearRentAfter / totalCost * 100 : 0;
+  const priceFactor    = yearRentCurrent > 0 ? purchase / yearRentCurrent : 0;
+  const rule200        = rentCurrent > 0 ? purchase / rentCurrent : 0;
+  const cashflow       = rentCurrent - monthlyRate - nonChargeable - maintenance - vacancy;
+
+  return {
+    sideCosts, totalCost, loan, monthlyRate, renoPerSqm,
+    priceSqm, totalCostSqm,
+    yearRentCurrent, yearRentAfter,
+    grossYield, netYield, priceFactor, rule200, cashflow,
+    equity
+  };
+}
+
+// ── RATINGS ──
+function rateGrossYield(v) { return v >= 6 ? 'green' : v >= 4.5 ? 'yellow' : 'red'; }
+function rateRule200(v)    { return v <= 200 ? 'green' : v <= 240 ? 'yellow' : 'red'; }
+function rateCashflow(v)   { return v > 0 ? 'green' : v >= -100 ? 'yellow' : 'red'; }
+function overallRating(r)  {
+  if (r.includes('red')) return 'red';
+  if (r.includes('yellow')) return 'yellow';
+  return 'green';
+}
+const ratingLabel = { green: 'Guter Deal ✓', yellow: 'Mittelmäßig', red: 'Schlechter Deal' };
+const ratingDesc  = {
+  green:  'Alle Kernkennzahlen sind im grünen Bereich. Der Deal sieht solide aus.',
+  yellow: 'Einige Kennzahlen geben Anlass zur Prüfung. Verhandlungsspielraum nutzen.',
+  red:    'Mehrere Kennzahlen sind kritisch. Deal nur mit erheblichen Preisnachlässen sinnvoll.'
+};
+
+// ── FORMAT HELPERS ──
+const fmt   = (n, dec=0) => n.toLocaleString('de-DE', { minimumFractionDigits: dec, maximumFractionDigits: dec });
+const fmtEur = n => fmt(n, 0) + ' €';
+const fmtPct = n => fmt(n, 2) + ' %';
+
+// ── RENDER RESULTS ──
+function renderResults(dealData, calcData) {
+  const c = calcData;
+  const gy = rateGrossYield(c.grossYield);
+  const r2 = rateRule200(c.rule200);
+  const cf = rateCashflow(c.cashflow);
+  const overall = overallRating([gy, r2, cf]);
+
+  const ampelIcon = { green: '🟢', yellow: '🟡', red: '🔴' };
+
+  return `
+    <div class="results-header">
+      <div class="results-title">${dealData.name}</div>
+      <div class="results-sub">${dealData.address || '–'} &nbsp;·&nbsp; ${dealData.area} m² &nbsp;·&nbsp; ${dealData.units} WE &nbsp;·&nbsp; Kaufpreis: ${fmtEur(dealData.purchase_price)}</div>
+    </div>
+
+    <div class="ampel-card ${overall}">
+      <div class="ampel-icon">${ampelIcon[overall]}</div>
+      <div class="ampel-text">
+        <h3>${ratingLabel[overall]}</h3>
+        <p>${ratingDesc[overall]}</p>
+      </div>
+      <div class="rating-chips">
+        <div class="chip ${gy}">Rendite ${fmtPct(c.grossYield)}</div>
+        <div class="chip ${r2}">200er ${fmt(c.rule200, 0)}</div>
+        <div class="chip ${cf}">Cashflow ${fmtEur(c.cashflow)}</div>
+      </div>
+    </div>
+
+    <div class="metrics-grid">
+      <div class="metric-card ${gy}">
+        <div class="metric-label">Bruttomietrendite</div>
+        <div class="metric-value">${fmtPct(c.grossYield)}</div>
+        <div class="metric-sub">Ziel: ≥ 6 % · gut ab 6 %</div>
+      </div>
+      <div class="metric-card neutral">
+        <div class="metric-label">Nettomietrendite</div>
+        <div class="metric-value">${fmtPct(c.netYield)}</div>
+        <div class="metric-sub">Auf Gesamtkosten nach San.</div>
+      </div>
+      <div class="metric-card ${gy}">
+        <div class="metric-label">Kaufpreisfaktor</div>
+        <div class="metric-value">${fmt(c.priceFactor, 1)}</div>
+        <div class="metric-sub">Faktor (gut: unter 16–17)</div>
+      </div>
+      <div class="metric-card ${r2}">
+        <div class="metric-label">200er-Regel</div>
+        <div class="metric-value">${fmt(c.rule200, 0)}</div>
+        <div class="metric-sub">Ziel: ≤ 200 · OK bis 240</div>
+      </div>
+      <div class="metric-card ${cf}">
+        <div class="metric-label">Monatl. Cashflow</div>
+        <div class="metric-value">${fmtEur(c.cashflow)}</div>
+        <div class="metric-sub">Vor Steuern</div>
+      </div>
+      <div class="metric-card neutral">
+        <div class="metric-label">Eigenkapitalbedarf</div>
+        <div class="metric-value">${fmtEur(c.equity)}</div>
+        <div class="metric-sub">Eingebrachtes EK</div>
+      </div>
+    </div>
+
+    <div class="detail-grid">
+      <div class="detail-card">
+        <h4>💰 Kosten-Übersicht</h4>
+        <div class="detail-row"><span>Kaufpreis</span><span>${fmtEur(dealData.purchase_price)}</span></div>
+        <div class="detail-row"><span>Kaufnebenkosten</span><span>${fmtEur(c.sideCosts)}</span></div>
+        <div class="detail-row"><span>Sanierungskosten</span><span>${fmtEur(dealData.renovation)}</span></div>
+        <div class="detail-row" style="font-weight:700"><span>Gesamtinvestition</span><span>${fmtEur(c.totalCost)}</span></div>
+        <div class="detail-row"><span>Preis pro m²</span><span>${fmtEur(c.priceSqm)}</span></div>
+        <div class="detail-row"><span>Gesamtkosten pro m²</span><span>${fmtEur(c.totalCostSqm)}</span></div>
+        ${dealData.renovation > 0 ? `<div class="detail-row"><span>Sanierung pro m²</span><span>${fmtEur(c.renoPerSqm)}</span></div>` : ''}
+      </div>
+
+      <div class="detail-card">
+        <h4>🏦 Finanzierung</h4>
+        <div class="detail-row"><span>Eigenkapital</span><span>${fmtEur(c.equity)}</span></div>
+        <div class="detail-row"><span>Darlehensbetrag</span><span>${fmtEur(c.loan)}</span></div>
+        <div class="detail-row"><span>Zinssatz p.a.</span><span>${fmtPct(dealData.interest)}</span></div>
+        <div class="detail-row"><span>Tilgung p.a.</span><span>${fmtPct(dealData.repayment)}</span></div>
+        <div class="detail-row" style="font-weight:700"><span>Monatl. Kreditrate</span><span>${fmtEur(c.monthlyRate)}</span></div>
+        <div class="detail-row"><span>EK-Anteil</span><span>${c.totalCost > 0 ? fmt(c.equity / c.totalCost * 100, 1) : '—'} %</span></div>
+      </div>
+
+      <div class="detail-card">
+        <h4>📈 Mietentwicklung</h4>
+        <div class="detail-row"><span>Kaltmiete aktuell (mtl.)</span><span>${fmtEur(dealData.rent_current)}</span></div>
+        <div class="detail-row"><span>Kaltmiete nach San. (mtl.)</span><span>${fmtEur(dealData.rent_after)}</span></div>
+        <div class="detail-row"><span>Jahreskaltmiete aktuell</span><span>${fmtEur(c.yearRentCurrent)}</span></div>
+        <div class="detail-row"><span>Jahreskaltmiete nach San.</span><span>${fmtEur(c.yearRentAfter)}</span></div>
+        <div class="detail-row"><span>Mietsteigerung</span><span>${fmtEur(dealData.rent_after - dealData.rent_current)} / mtl.</span></div>
+      </div>
+
+      <div class="detail-card">
+        <h4>📊 Monatl. Cashflow</h4>
+        <div class="detail-row"><span>Kaltmiete (aktuell)</span><span>+ ${fmtEur(dealData.rent_current)}</span></div>
+        <div class="detail-row"><span>Kreditrate</span><span>− ${fmtEur(c.monthlyRate)}</span></div>
+        <div class="detail-row"><span>Nicht umlagef. Kosten</span><span>− ${fmtEur(dealData.non_chargeable)}</span></div>
+        <div class="detail-row"><span>Instandhaltungsrücklage</span><span>− ${fmtEur(dealData.maintenance)}</span></div>
+        <div class="detail-row"><span>Leerstandsrisiko</span><span>− ${fmtEur(dealData.vacancy)}</span></div>
+        <div class="detail-row" style="font-weight:700;${c.cashflow >= 0 ? 'color:var(--green)' : 'color:var(--red)'}">
+          <span>Cashflow vor Steuern</span><span>${c.cashflow >= 0 ? '+' : ''}${fmtEur(c.cashflow)}</span>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+// ── SUBMIT ──
+function submitDeal(e) {
+  e.preventDefault();
+  const dealData = {
+    id:             editingDealId || Date.now().toString(),
+    name:           document.getElementById('name').value,
+    address:        document.getElementById('address').value,
+    area:           parseFloat(document.getElementById('area').value) || 0,
+    units:          parseInt(document.getElementById('units').value) || 1,
+    purchase_price: parseFloat(document.getElementById('purchase_price').value) || 0,
+    rent_current:   parseFloat(document.getElementById('rent_current').value) || 0,
+    rent_after:     parseFloat(document.getElementById('rent_after').value) || parseFloat(document.getElementById('rent_current').value) || 0,
+    land_tax:       parseFloat(document.getElementById('land_tax').value) || 0,
+    notary:         parseFloat(document.getElementById('notary').value) || 0,
+    broker:         parseFloat(document.getElementById('broker').value) || 0,
+    other_costs:    parseFloat(document.getElementById('other_costs').value) || 0,
+    renovation:     parseFloat(document.getElementById('renovation').value) || 0,
+    equity:         parseFloat(document.getElementById('equity').value) || 0,
+    interest:       parseFloat(document.getElementById('interest').value) || 0,
+    repayment:      parseFloat(document.getElementById('repayment').value) || 0,
+    non_chargeable: parseFloat(document.getElementById('non_chargeable').value) || 0,
+    maintenance:    parseFloat(document.getElementById('maintenance').value) || 0,
+    vacancy:        parseFloat(document.getElementById('vacancy').value) || 0,
+    created:        editingDealId ? (deals.find(d => d.id === editingDealId)?.created || new Date().toISOString()) : new Date().toISOString()
+  };
+
+  const calc = calculateDeal(dealData);
+  dealData._calc = calc;
+  dealData._rating = overallRating([
+    rateGrossYield(calc.grossYield),
+    rateRule200(calc.rule200),
+    rateCashflow(calc.cashflow)
+  ]);
+
+  if (editingDealId) {
+    const idx = deals.findIndex(d => d.id === editingDealId);
+    if (idx > -1) deals[idx] = dealData;
+    editingDealId = null;
+  } else {
+    deals.unshift(dealData);
+  }
+
+  saveDeals();
+  currentDealId = dealData.id;
+  document.getElementById('results-content').innerHTML = renderResults(dealData, calc);
+  navigate('results');
+  showToast('Deal gespeichert!', 'success');
+}
+
+// ── EDIT DEAL ──
+function editDeal(id) {
+  const deal = deals.find(d => d.id === id);
+  if (!deal) return;
+  editingDealId = id;
+
+  document.getElementById('name').value           = deal.name;
+  document.getElementById('address').value        = deal.address;
+  document.getElementById('area').value           = deal.area;
+  document.getElementById('units').value          = deal.units;
+  document.getElementById('purchase_price').value = deal.purchase_price;
+  document.getElementById('rent_current').value   = deal.rent_current;
+  document.getElementById('rent_after').value     = deal.rent_after;
+  document.getElementById('land_tax').value       = deal.land_tax;
+  document.getElementById('notary').value         = deal.notary;
+  document.getElementById('broker').value         = deal.broker;
+  document.getElementById('other_costs').value    = deal.other_costs;
+  document.getElementById('renovation').value     = deal.renovation;
+  document.getElementById('equity').value         = deal.equity;
+  document.getElementById('interest').value       = deal.interest;
+  document.getElementById('repayment').value      = deal.repayment;
+  document.getElementById('non_chargeable').value = deal.non_chargeable;
+  document.getElementById('maintenance').value    = deal.maintenance;
+  document.getElementById('vacancy').value        = deal.vacancy;
+
+  autoCalc();
+  navigate('new');
+}
+
+// ── VIEW DEAL ──
+function viewDeal(id) {
+  const deal = deals.find(d => d.id === id);
+  if (!deal) return;
+  const calc = calculateDeal(deal);
+  currentDealId = id;
+  document.getElementById('results-content').innerHTML = renderResults(deal, calc);
+  navigate('results');
+}
+
+// ── DELETE ──
+function deleteDeal(id, e) {
+  e.stopPropagation();
+  if (!confirm('Deal wirklich löschen?')) return;
+  deals = deals.filter(d => d.id !== id);
+  saveDeals();
+  renderDealsList();
+  showToast('Deal gelöscht.', 'error');
+}
+
+// ── RESET FORM ──
+function resetForm() {
+  editingDealId = null;
+  document.getElementById('dealForm').reset();
+  document.getElementById('land_tax').value = '3.5';
+  document.getElementById('notary').value   = '2.0';
+  document.getElementById('broker').value   = '3.57';
+  document.getElementById('interest').value = '3.5';
+  document.getElementById('repayment').value = '2.0';
+  document.getElementById('units').value    = '1';
+  document.getElementById('other_costs').value = '0';
+  document.getElementById('renovation').value = '0';
+  document.getElementById('non_chargeable').value = '150';
+  document.getElementById('maintenance').value = '0';
+  document.getElementById('vacancy').value  = '0';
+  document.getElementById('reno_per_sqm').value = '';
+  document.getElementById('loan').value     = '';
+  document.getElementById('monthly_rate').value = '';
+}
+
+// ── DEALS LIST ──
+function renderDealsList() {
+  const el = document.getElementById('deals-content');
+  if (deals.length === 0) {
+    el.innerHTML = `
+      <div class="empty-state">
+        <div class="empty-state-icon">🏠</div>
+        <h3>Noch keine Deals gespeichert</h3>
+        <p>Analysiere deine erste Immobilie und speichere sie hier.</p>
+        <button class="btn btn-primary" onclick="navigate('new')">+ Neuen Deal prüfen</button>
+      </div>`;
+    return;
+  }
+
+  const cards = deals.map(d => {
+    const c = d._calc || calculateDeal(d);
+    const rating = d._rating || overallRating([rateGrossYield(c.grossYield), rateRule200(c.rule200), rateCashflow(c.cashflow)]);
+    const cfColor = c.cashflow >= 0 ? 'val-green' : 'val-red';
+    const date = new Date(d.created).toLocaleDateString('de-DE', { day:'2-digit', month:'2-digit', year:'numeric' });
+
+    return `
+      <div class="deal-card" onclick="viewDeal('${d.id}')">
+        <div class="deal-card-top">
+          <div>
+            <div class="deal-card-name">${d.name}</div>
+            <div class="deal-card-loc">${d.address || 'Keine Adresse'} · ${date}</div>
+          </div>
+          <div class="deal-badge ${rating}">${rating === 'green' ? 'Gut ✓' : rating === 'yellow' ? 'Mittel' : 'Schlecht'}</div>
+        </div>
+        <div class="deal-stats">
+          <div class="deal-stat">
+            <div class="deal-stat-val" style="color:${c.grossYield >= 6 ? 'var(--green)' : c.grossYield >= 4.5 ? 'var(--yellow)' : 'var(--red)'}">${fmt(c.grossYield, 2)} %</div>
+            <div class="deal-stat-lbl">Brutto-Rendite</div>
+          </div>
+          <div class="deal-stat">
+            <div class="deal-stat-val" style="color:${c.rule200 <= 200 ? 'var(--green)' : c.rule200 <= 240 ? 'var(--yellow)' : 'var(--red)'}">${fmt(c.rule200, 0)}</div>
+            <div class="deal-stat-lbl">200er-Regel</div>
+          </div>
+          <div class="deal-stat">
+            <div class="deal-stat-val ${cfColor}">${c.cashflow >= 0 ? '+' : ''}${fmt(c.cashflow, 0)} €</div>
+            <div class="deal-stat-lbl">Cashflow</div>
+          </div>
+        </div>
+        <div style="font-size:13px;color:var(--text-muted);margin-bottom:12px">
+          💰 ${fmtEur(d.purchase_price)} &nbsp;·&nbsp; ${d.area} m² &nbsp;·&nbsp; ${d.units} WE
+        </div>
+        <div class="deal-actions" onclick="event.stopPropagation()">
+          <button class="btn btn-ghost btn-sm" onclick="viewDeal('${d.id}')">📊 Anzeigen</button>
+          <button class="btn btn-ghost btn-sm" onclick="editDeal('${d.id}')">✏️ Bearbeiten</button>
+          <button class="btn btn-danger btn-sm" onclick="deleteDeal('${d.id}', event)">🗑 Löschen</button>
+        </div>
+      </div>`;
+  }).join('');
+
+  el.innerHTML = `<div class="deals-grid">${cards}</div>`;
+}
+
+// ── COMPARE ──
+let compareSelected = new Set();
+
+function renderCompare() {
+  const el = document.getElementById('compare-content');
+  if (deals.length < 2) {
+    el.innerHTML = `
+      <div class="empty-state">
+        <div class="empty-state-icon">⚖️</div>
+        <h3>Mindestens 2 Deals benötigt</h3>
+        <p>Speichere mehrere Deals, um sie hier vergleichen zu können.</p>
+        <button class="btn btn-primary" onclick="navigate('new')">+ Neuen Deal prüfen</button>
+      </div>`;
+    return;
+  }
+
+  const checks = deals.map(d => {
+    const checked = compareSelected.has(d.id) ? 'checked' : '';
+    return `
+      <label class="compare-check">
+        <input type="checkbox" ${checked} value="${d.id}" onchange="toggleCompare('${d.id}', this.checked)">
+        ${d.name}
+      </label>`;
+  }).join('');
+
+  const selected = deals.filter(d => compareSelected.has(d.id));
+  let tableHtml = '';
+
+  if (selected.length >= 2) {
+    const rows = [
+      { label: 'Kaufpreis', fn: (d,c) => fmtEur(d.purchase_price) },
+      { label: 'Wohnfläche', fn: (d,c) => d.area + ' m²' },
+      { label: 'Wohneinheiten', fn: (d,c) => d.units + ' WE' },
+      { label: 'Preis / m²', fn: (d,c) => fmtEur(c.priceSqm) },
+      { label: 'Gesamtkosten', fn: (d,c) => fmtEur(c.totalCost) },
+      { label: 'Eigenkapital', fn: (d,c) => fmtEur(d.equity) },
+      { label: '─────────────', fn: () => '' },
+      { label: 'Bruttomietrendite', fn: (d,c) => fmtPct(c.grossYield), rate: (d,c) => rateGrossYield(c.grossYield) },
+      { label: 'Nettomietrendite', fn: (d,c) => fmtPct(c.netYield) },
+      { label: 'Kaufpreisfaktor', fn: (d,c) => fmt(c.priceFactor, 1) + 'x' },
+      { label: '200er-Regel', fn: (d,c) => fmt(c.rule200, 0), rate: (d,c) => rateRule200(c.rule200) },
+      { label: 'Monatl. Cashflow', fn: (d,c) => fmtEur(c.cashflow), rate: (d,c) => rateCashflow(c.cashflow) },
+      { label: 'Monatl. Kreditrate', fn: (d,c) => fmtEur(c.monthlyRate) },
+      { label: 'Kaltmiete (aktuell)', fn: (d,c) => fmtEur(d.rent_current) },
+      { label: 'Kaltmiete (nach San.)', fn: (d,c) => fmtEur(d.rent_after) },
+      { label: 'Sanierungskosten', fn: (d,c) => fmtEur(d.renovation) },
+      { label: 'Gesamtbewertung', fn: (d,c) => {
+          const r = overallRating([rateGrossYield(c.grossYield), rateRule200(c.rule200), rateCashflow(c.cashflow)]);
+          return r === 'green' ? '🟢 Gut' : r === 'yellow' ? '🟡 Mittel' : '🔴 Schlecht';
+        },
+        rate: (d,c) => overallRating([rateGrossYield(c.grossYield), rateRule200(c.rule200), rateCashflow(c.cashflow)])
+      },
+    ];
+
+    const headerCols = selected.map(d => `<th class="deal-col"><div class="deal-header">${d.name}</div><div style="font-size:11px;color:var(--text-dim)">${d.address || ''}</div></th>`).join('');
+
+    const rowHtml = rows.map(row => {
+      const cells = selected.map(d => {
+        const c = d._calc || calculateDeal(d);
+        const val = row.fn(d, c);
+        const r = row.rate ? row.rate(d, c) : null;
+        const cls = r ? `val-${r}` : '';
+        return `<td class="${cls}">${val}</td>`;
+      }).join('');
+      const isDivider = row.label.startsWith('─');
+      return `<tr ${isDivider ? 'style="opacity:0.2"' : ''}><td class="row-label">${isDivider ? '' : row.label}</td>${cells}</tr>`;
+    }).join('');
+
+    tableHtml = `
+      <div class="compare-table-wrap">
+        <table class="compare-table">
+          <thead><tr><th>Kennzahl</th>${headerCols}</tr></thead>
+          <tbody>${rowHtml}</tbody>
+        </table>
+      </div>`;
+  } else {
+    tableHtml = `<div style="color:var(--text-muted);font-size:14px;padding:20px 0">Wähle mindestens 2 Deals aus, um den Vergleich zu starten.</div>`;
+  }
+
+  el.innerHTML = `
+    <div class="compare-selector">
+      <h3>Deals auswählen (max. 5)</h3>
+      <div class="compare-checks">${checks}</div>
+    </div>
+    ${tableHtml}
+  `;
+}
+
+function toggleCompare(id, checked) {
+  if (checked) {
+    if (compareSelected.size >= 5) {
+      showToast('Maximal 5 Deals vergleichbar.', 'error');
+      renderCompare();
+      return;
+    }
+    compareSelected.add(id);
+  } else {
+    compareSelected.delete(id);
+  }
+  renderCompare();
+}
+
+// ── STORAGE ──
+function saveDeals() {
+  localStorage.setItem('immobilien_deals', JSON.stringify(deals));
+}
+
+// ── TOAST ──
+function showToast(msg, type = '') {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'toast show ' + type;
+  setTimeout(() => { t.className = 'toast ' + type; }, 2800);
+}
+
+// ── PWA: MANIFEST (inline als Data-URL) ──
+const manifest = {
+  name: 'Immobilien Deal Analyzer',
+  short_name: 'Deal Analyzer',
+  description: 'Rendite, Cashflow und Kennzahlen für Immobilien-Investments',
+  start_url: './',
+  display: 'standalone',
+  background_color: '#0d1117',
+  theme_color: '#0d1117',
+  orientation: 'portrait-primary',
+  icons: [
+    {
+      src: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'%3E%3Crect width='192' height='192' rx='32' fill='%230d1117'/%3E%3Crect x='16' y='16' width='160' height='160' rx='24' fill='%231e2538'/%3E%3Ctext x='96' y='120' font-size='90' text-anchor='middle'%3E%F0%9F%8F%A0%3C/text%3E%3C/svg%3E",
+      sizes: '192x192', type: 'image/svg+xml', purpose: 'any maskable'
+    },
+    {
+      src: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Crect width='512' height='512' rx='80' fill='%230d1117'/%3E%3Crect x='32' y='32' width='448' height='448' rx='60' fill='%231e2538'/%3E%3Ctext x='256' y='320' font-size='240' text-anchor='middle'%3E%F0%9F%8F%A0%3C/text%3E%3C/svg%3E",
+      sizes: '512x512', type: 'image/svg+xml', purpose: 'any maskable'
+    }
+  ]
+};
+const manifestBlob = new Blob([JSON.stringify(manifest)], { type: 'application/json' });
+const manifestURL  = URL.createObjectURL(manifestBlob);
+document.getElementById('manifest-placeholder').setAttribute('href', manifestURL);
+
+// ── PWA: SERVICE WORKER (inline als Blob) ──
+const swCode = `
+const CACHE = 'deal-analyzer-v1';
+self.addEventListener('install', e => {
+  e.waitUntil(
+    caches.open(CACHE).then(c => c.addAll(['./', './index.html']))
+      .catch(() => {})
+  );
+  self.skipWaiting();
+});
+self.addEventListener('activate', e => {
+  e.waitUntil(caches.keys().then(keys =>
+    Promise.all(keys.filter(k => k !== CACHE).map(k => caches.delete(k)))
+  ));
+  self.clients.claim();
+});
+self.addEventListener('fetch', e => {
+  e.respondWith(
+    caches.match(e.request).then(cached => cached || fetch(e.request).catch(() => cached))
+  );
+});
+`;
+if ('serviceWorker' in navigator) {
+  const swBlob = new Blob([swCode], { type: 'application/javascript' });
+  const swURL  = URL.createObjectURL(swBlob);
+  navigator.serviceWorker.register(swURL, { scope: './' })
+    .catch(() => {});
+}
+</script>
+</body>
+</html>
